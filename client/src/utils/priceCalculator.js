@@ -1,9 +1,19 @@
-// src/utils/priceCalculator.js
+function toSafeNumber(value) {
+  const parsed = Number(value);
+
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 export function calculateTablePrice(product, selectedTop, selectedLegs) {
-  const basePrice = Number(product?.basePrice || 0);
-  const topPrice = Number(selectedTop?.price || 0);
-  const legsPrice = Number(selectedLegs?.price || 0);
+  const basePrice = toSafeNumber(product?.basePrice);
+  const topPrice = toSafeNumber(selectedTop?.price);
+  const legsPrice = toSafeNumber(selectedLegs?.price);
 
   return basePrice + topPrice + legsPrice;
+}
+
+export function formatPrice(value) {
+  const safeValue = toSafeNumber(value);
+
+  return `₹${safeValue.toLocaleString("en-IN")}`;
 }

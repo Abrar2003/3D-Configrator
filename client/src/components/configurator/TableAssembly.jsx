@@ -1,5 +1,3 @@
-// src/components/configurator/TableAssembly.jsx
-
 import { useMemo } from "react";
 import * as THREE from "three";
 import { useGLTF } from "@react-three/drei";
@@ -8,50 +6,47 @@ function toVector(value, fallback = [0, 0, 0]) {
   return Array.isArray(value) && value.length === 3 ? value : fallback;
 }
 
-export default function TableAssembly({
-  selectedTop,
-  selectedLegs,
-  topGap = 0.02,
-}) {
+function prepareClone(source, scale) {
+  const clone = source.clone(true);
+
+  clone.scale.set(...scale);
+  clone.traverse((child) => {
+    if (child.isMesh) {
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+  clone.updateMatrixWorld(true);
+
+  return clone;
+}
+
+function TableAssemblyContent({ selectedTop, selectedLegs, topGap }) {
   const { scene: topSource } = useGLTF(selectedTop.modelUrl);
   const { scene: legsSource } = useGLTF(selectedLegs.modelUrl);
 
   const assembly = useMemo(() => {
-    const top = topSource.clone(true);
-    const legs = legsSource.clone(true);
-
     const topScale = toVector(selectedTop.scale, [1, 1, 1]);
     const legsScale = toVector(selectedLegs.scale, [1, 1, 1]);
-
-    top.scale.set(...topScale);
-    legs.scale.set(...legsScale);
-
-    top.updateMatrixWorld(true);
-    legs.updateMatrixWorld(true);
-
-    const topBox = new THREE.Box3().setFromObject(top);
-    const legsBox = new THREE.Box3().setFromObject(legs);
-
-    const topCenter = new THREE.Vector3();
-    const legsCenter = new THREE.Vector3();
-
-    topBox.getCenter(topCenter);
-    legsBox.getCenter(legsCenter);
-
     const topOffset = toVector(selectedTop.offset, [0, 0, 0]);
     const legsOffset = toVector(selectedLegs.offset, [0, 0, 0]);
 
-    // Put legs on floor and center them.
+    const top = prepareClone(topSource, topScale);
+    const legs = prepareClone(legsSource, legsScale);
+
+    const topBox = new THREE.Box3().setFromObject(top);
+    const legsBox = new THREE.Box3().setFromObject(legs);
+    const topCenter = topBox.getCenter(new THREE.Vector3());
+    const legsCenter = legsBox.getCenter(new THREE.Vector3());
+
     const legsPosition = [
       -legsCenter.x + legsOffset[0],
       -legsBox.min.y + legsOffset[1],
       -legsCenter.z + legsOffset[2],
     ];
 
-    // Find final top point of legs after moving legs.
     const legsTopY = legsBox.max.y + legsPosition[1];
 
-    // Put tabletop bottom exactly on top of legs.
     const topPosition = [
       -topCenter.x + legsOffset[0] + topOffset[0],
       legsTopY + topGap - topBox.min.y + topOffset[1],
@@ -65,13 +60,13 @@ export default function TableAssembly({
       legsPosition,
     };
   }, [
+    topGap,
     topSource,
     legsSource,
-    selectedTop.scale,
-    selectedLegs.scale,
     selectedTop.offset,
+    selectedTop.scale,
     selectedLegs.offset,
-    topGap,
+    selectedLegs.scale,
   ]);
 
   return (
@@ -79,5 +74,23 @@ export default function TableAssembly({
       <primitive object={assembly.legs} position={assembly.legsPosition} />
       <primitive object={assembly.top} position={assembly.topPosition} />
     </group>
+  );
+}
+
+export default function TableAssembly({
+  selectedTop,
+  selectedLegs,
+  topGap = -0.02,
+}) {
+  if (!selectedTop?.modelUrl || !selectedLegs?.modelUrl) {
+    return null;
+  }
+
+  return (
+    <TableAssemblyContent
+      selectedTop={selectedTop}
+      selectedLegs={selectedLegs}
+      topGap={topGap}
+    />
   );
 }
