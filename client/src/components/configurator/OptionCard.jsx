@@ -1,74 +1,51 @@
 import clsx from "clsx";
-import { Check } from "lucide-react";
-import { formatPrice } from "../../utils/priceCalculator";
+import { Info } from "lucide-react";
 
 export default function OptionCard({
   active = false,
   title,
-  subtitle,
   imageUrl,
-  price = 0,
   onClick,
-  compact = false,
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-label={title}
+      aria-pressed={active}
       className={clsx(
-        "group relative overflow-hidden rounded-3xl border bg-white text-left transition duration-200",
-        compact ? "p-3" : "p-3.5",
-        active
-          ? "border-black shadow-lg shadow-black/5"
-          : "border-black/8 hover:border-black/40 hover:shadow-md hover:shadow-black/5"
+        "group relative flex w-[88px] shrink-0 flex-col items-center bg-transparent p-0 text-center transition duration-200",
+        active ? "scale-[0.98]" : "hover:-translate-y-0.5"
       )}
     >
       <div
         className={clsx(
-          "relative overflow-hidden rounded-2xl border",
-          active ? "border-black/10 bg-[#f5f4ef]" : "border-black/6 bg-[#faf9f6]"
+          "relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-white transition duration-200",
+          active
+            ? "border-[3px] border-[#d9aa3a] shadow-[0_12px_26px_rgba(0,0,0,0.16)]"
+            : "shadow-[0_10px_24px_rgba(0,0,0,0.10)] group-hover:shadow-[0_14px_28px_rgba(0,0,0,0.14)]"
         )}
       >
-        <div className="absolute right-3 top-3 z-10">
-          <span
-            className={clsx(
-              "flex h-6 w-6 items-center justify-center rounded-full border transition",
-              active
-                ? "border-black bg-black text-white"
-                : "border-black/10 bg-white text-transparent"
-            )}
-          >
-            <Check className="h-3.5 w-3.5" />
-          </span>
-        </div>
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt=""
+            loading="lazy"
+            className="h-full w-full object-contain p-4"
+          />
+        ) : (
+          <div className="h-8 w-8 rounded-full bg-neutral-200" />
+        )}
 
-        <div className="aspect-[4/3]">
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={title}
-              loading="lazy"
-              className="h-full w-full object-contain p-4"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-sm text-neutral-400">
-              Preview unavailable
-            </div>
-          )}
-        </div>
+        <span className="absolute bottom-1 left-1/2 flex h-4 w-4 -translate-x-1/2 items-center justify-center rounded-full bg-white text-neutral-800 shadow-sm ring-1 ring-black/35">
+          <Info className="h-3 w-3" strokeWidth={2} />
+        </span>
+
       </div>
 
-      <div className={clsx(compact ? "px-1 pb-1 pt-3" : "px-1 pb-1 pt-3.5")}>
-        <h3 className="text-sm font-semibold tracking-[-0.01em] text-neutral-950">
-          {title}
-        </h3>
-        {subtitle ? (
-          <p className="mt-1 text-xs leading-5 text-neutral-500">{subtitle}</p>
-        ) : null}
-        <p className="mt-3 text-sm font-medium text-neutral-800">
-          {price > 0 ? `+ ${formatPrice(price)}` : "Included"}
-        </p>
-      </div>
+      <span className="mt-2 min-h-[30px] text-xs font-semibold leading-[15px] text-neutral-950">
+        {title}
+      </span>
     </button>
   );
 }

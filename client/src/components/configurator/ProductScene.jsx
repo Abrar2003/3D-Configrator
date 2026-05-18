@@ -4,6 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import {
   ContactShadows,
   Environment,
+  Grid,
   Html,
   OrbitControls,
 } from "@react-three/drei";
@@ -21,7 +22,7 @@ function Loader() {
 
 export default function ProductScene({ selectedTop, selectedLegs }) {
   return (
-    <div className="h-full min-h-[520px] w-full bg-[radial-gradient(circle_at_top,_#faf8f2_0%,_#efebe2_52%,_#e4ddd0_100%)]">
+    <div className="h-full min-h-[520px] w-full bg-white">
       <Canvas
         shadows
         camera={{ position: [4.5, 2.8, 5.5], fov: 33 }}
@@ -34,18 +35,18 @@ export default function ProductScene({ selectedTop, selectedLegs }) {
           gl.shadowMap.type = THREE.PCFSoftShadowMap;
         }}
       >
-        <color attach="background" args={["#efebe2"]} />
-        <ambientLight intensity={0.28} />
+        <color attach="background" args={["#ffffff"]} />
+        <ambientLight intensity={0.35} />
         <hemisphereLight
-          intensity={0.22}
-          color="#f4f0e6"
-          groundColor="#b8af9f"
+          intensity={0.26}
+          color="#ffffff"
+          groundColor="#e7e7e7"
         />
         <directionalLight
           castShadow
           position={[5.6, 7.4, 3.2]}
-          intensity={0.92}
-          color="#f4e7d4"
+          intensity={0.95}
+          color="#ffffff"
           shadow-bias={-0.00008}
           shadow-normalBias={0.028}
           shadow-mapSize-width={2048}
@@ -64,6 +65,30 @@ export default function ProductScene({ selectedTop, selectedLegs }) {
         />
 
         <Suspense fallback={<Loader />}>
+          <mesh
+            receiveShadow
+            rotation={[-Math.PI / 2, 0, 0]}
+            position={[0, -0.012, 0]}
+          >
+            <planeGeometry args={[18, 18]} />
+            <shadowMaterial transparent opacity={0.14} />
+          </mesh>
+
+          <Grid
+            position={[0, 0.002, 0]}
+            args={[12, 12]}
+            cellSize={0.1}
+            cellThickness={0.18}
+            cellColor="#d8d8d8"
+            sectionSize={1}
+            sectionThickness={0.42}
+            sectionColor="#c6c6c6"
+            fadeDistance={7.5}
+            fadeStrength={1.8}
+            infiniteGrid={false}
+            followCamera={false}
+          />
+
           <TableAssembly
             selectedTop={selectedTop}
             selectedLegs={selectedLegs}
@@ -74,10 +99,10 @@ export default function ProductScene({ selectedTop, selectedLegs }) {
 
           <ContactShadows
             position={[0, 0.001, 0]}
-            opacity={0.4}
-            scale={11}
-            blur={2.35}
-            far={5.2}
+            opacity={0.52}
+            scale={9}
+            blur={2.1}
+            far={4.6}
             resolution={1024}
           />
         </Suspense>

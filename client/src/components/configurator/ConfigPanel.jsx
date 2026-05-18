@@ -3,65 +3,35 @@
 import clsx from "clsx";
 import { calculateTablePrice } from "../../utils/priceCalculator";
 
-function ThumbnailOptionCard({ active, title, subtitle, price, imageUrl, onClick }) {
+function ThumbnailOptionCard({ active, title, imageUrl, onClick }) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-label={title}
+      aria-pressed={active}
       className={clsx(
-        "overflow-hidden rounded-2xl border text-left transition",
+        "group flex h-16 w-16 items-center justify-center rounded-2xl bg-transparent p-0 transition",
         active
-          ? "border-black bg-black text-white shadow-md"
-          : "border-neutral-200 bg-white hover:border-black hover:shadow-sm"
+          ? "scale-95 shadow-xl shadow-black/25"
+          : "shadow-md shadow-black/15 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20"
       )}
     >
       <div
         className={clsx(
-          "flex aspect-[4/3] items-center justify-center",
-          active ? "bg-neutral-900" : "bg-neutral-100"
+          "flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white",
+          active ? "shadow-inner shadow-black/10" : "group-hover:bg-[#fbfaf7]"
         )}
       >
         {imageUrl ? (
           <img
             src={imageUrl}
-            alt={title}
-            className="h-full w-full object-contain p-3"
+            alt=""
+            className="h-full w-full object-contain p-2"
             loading="lazy"
           />
         ) : (
-          <div className="text-sm text-neutral-400">No image</div>
-        )}
-      </div>
-
-      <div className="p-3">
-        <div className="line-clamp-2 text-sm font-semibold">{title}</div>
-
-        <div
-          className={clsx(
-            "mt-1 text-xs",
-            active ? "text-neutral-300" : "text-neutral-500"
-          )}
-        >
-          {subtitle}
-        </div>
-
-        {price > 0 ? (
-          <div
-            className={clsx(
-              "mt-1 text-xs font-medium",
-              active ? "text-neutral-200" : "text-neutral-700"
-            )}
-          >
-            + ₹{price.toLocaleString("en-IN")}
-          </div>
-        ) : (
-          <div
-            className={clsx(
-              "mt-1 text-xs font-medium",
-              active ? "text-neutral-300" : "text-neutral-500"
-            )}
-          >
-            Included
-          </div>
+          <div className="h-8 w-8 rounded-full bg-neutral-200" />
         )}
       </div>
     </button>
@@ -109,14 +79,12 @@ export default function ConfigPanel({
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-wrap gap-3">
             {product.tops.map((top) => (
               <ThumbnailOptionCard
                 key={top.id}
                 active={selectedTop?.id === top.id}
                 title={top.name}
-                subtitle={`${top.shape} / ${top.material}`}
-                price={top.price}
                 imageUrl={top.thumbnailUrl}
                 onClick={() => onSelectTop(top.id)}
               />
@@ -132,14 +100,12 @@ export default function ConfigPanel({
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-wrap gap-3">
             {product.legs.map((legs) => (
               <ThumbnailOptionCard
                 key={legs.id}
                 active={selectedLegs?.id === legs.id}
                 title={legs.name}
-                subtitle={`${legs.shape} / ${legs.material}`}
-                price={legs.price}
                 imageUrl={legs.thumbnailUrl}
                 onClick={() => onSelectLegs(legs.id)}
               />

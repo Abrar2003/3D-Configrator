@@ -3,6 +3,13 @@ import ConfigAccordion from "./ConfigAccordion";
 import OptionCard from "./OptionCard";
 import { formatPrice } from "../../utils/priceCalculator";
 
+const MATERIAL_IMAGE_BY_NAME = {
+  "Natural Mango Wood": "/images/table/material/natural_mango_wood.jpeg",
+  "Dark Brown Mango Wood": "/images/table/material/dark_brown_mango_wood.jpeg",
+  "Black Metal": "/images/table/material/black_matel.jpeg",
+  "Gold Metal": "/images/table/material/gold_metal.jpeg",
+};
+
 function SummaryRow({ label, value, emphasized = false }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2 text-sm">
@@ -11,6 +18,42 @@ function SummaryRow({ label, value, emphasized = false }) {
         {value}
       </span>
     </div>
+  );
+}
+
+function MaterialSwatch({ active, material, onClick }) {
+  const imageUrl = MATERIAL_IMAGE_BY_NAME[material];
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={material}
+      aria-pressed={active}
+      title={material}
+      className={`group flex h-12 w-12 items-center justify-center rounded-full bg-white p-0.5 transition ${
+        active
+          ? "scale-95 shadow-xl shadow-black/25"
+          : "shadow-md shadow-black/15 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20"
+      }`}
+    >
+      <span
+        className={`block h-full w-full overflow-hidden rounded-full ${
+          active ? "ring-2 ring-black ring-offset-2 ring-offset-[#faf9f5]" : ""
+        }`}
+      >
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt=""
+            loading="lazy"
+            className="h-full w-full object-cover opacity-100 saturate-100"
+          />
+        ) : (
+          <span className="block h-full w-full rounded-full bg-neutral-200" />
+        )}
+      </span>
+    </button>
   );
 }
 
@@ -69,11 +112,10 @@ export default function ConfigSidebar({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-5 pb-8 sm:px-6 lg:px-8">
+        <div className="flex-1 overflow-y-auto px-5 pb-6 sm:px-6 lg:px-7">
           <ConfigAccordion
             title="Type Table"
             subtitle={selectedTableType?.name}
-            stepLabel="Step 1/5"
             icon={<LayoutGrid className="h-5 w-5" />}
             defaultOpen
           >
@@ -86,10 +128,10 @@ export default function ConfigSidebar({
                     key={tableType.id}
                     type="button"
                     onClick={() => onSelectTableType(tableType.id)}
-                    className={`rounded-3xl border px-4 py-4 text-left transition ${
+                    className={`rounded-2xl px-3.5 py-3 text-left transition ${
                       active
-                        ? "border-black bg-[#faf9f4] shadow-sm shadow-black/5"
-                        : "border-black/8 bg-white hover:border-black/25"
+                        ? "bg-white shadow-md shadow-black/8 ring-1 ring-black/8"
+                        : "bg-white/70 shadow-sm shadow-black/5 ring-1 ring-black/6 hover:bg-white hover:shadow-md hover:shadow-black/8"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3">
@@ -97,7 +139,7 @@ export default function ConfigSidebar({
                         <div className="text-sm font-semibold text-neutral-950">
                           {tableType.name}
                         </div>
-                        <div className="mt-1 text-sm text-neutral-500">
+                        <div className="mt-0.5 text-xs text-neutral-500">
                           {tableType.description}
                         </div>
                       </div>
@@ -119,61 +161,48 @@ export default function ConfigSidebar({
                 ? `Top: ${selectedTop.material} • Legs: ${selectedLegs.material}`
                 : "Choose tabletop and leg finishes"
             }
-            stepLabel="Step 2/5"
             icon={<Palette className="h-5 w-5" />}
           >
-            <div className="rounded-3xl border border-black/8 bg-[#faf9f5] p-4">
-              <p className="text-sm leading-6 text-neutral-500">
+            <div className="rounded-2xl bg-white/65 p-3.5 shadow-sm shadow-black/5 ring-1 ring-black/6">
+              <p className="text-xs leading-5 text-neutral-500">
                 Choose finishes first, then select from the shapes available for each material.
               </p>
 
-              <div className="mt-5">
+              <div className="mt-4">
                 <div className="text-xs font-medium uppercase tracking-[0.2em] text-neutral-400">
                   Table Top Finish
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-3">
                   {topMaterials.map((material) => {
                     const active = material === selectedTop?.material;
 
                     return (
-                      <button
+                      <MaterialSwatch
                         key={material}
-                        type="button"
+                        active={active}
+                        material={material}
                         onClick={() => onSelectTopMaterial(material)}
-                        className={`rounded-full border px-3 py-2 text-xs font-medium transition ${
-                          active
-                            ? "border-black bg-black text-white"
-                            : "border-black/10 bg-white text-neutral-600 hover:border-black/25"
-                        }`}
-                      >
-                        {material}
-                      </button>
+                      />
                     );
                   })}
                 </div>
               </div>
 
-              <div className="mt-5">
+              <div className="mt-4">
                 <div className="text-xs font-medium uppercase tracking-[0.2em] text-neutral-400">
                   Leg Finish
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-3">
                   {legMaterials.map((material) => {
                     const active = material === selectedLegs?.material;
 
                     return (
-                      <button
+                      <MaterialSwatch
                         key={material}
-                        type="button"
+                        active={active}
+                        material={material}
                         onClick={() => onSelectLegsMaterial(material)}
-                        className={`rounded-full border px-3 py-2 text-xs font-medium transition ${
-                          active
-                            ? "border-black bg-black text-white"
-                            : "border-black/10 bg-white text-neutral-600 hover:border-black/25"
-                        }`}
-                      >
-                        {material}
-                      </button>
+                      />
                     );
                   })}
                 </div>
@@ -188,23 +217,24 @@ export default function ConfigSidebar({
                 ? `${selectedTop.material} • ${selectedTop.shape}`
                 : "Choose a tabletop shape"
             }
-            stepLabel="Step 3/5"
             icon={<Square className="h-5 w-5" />}
             defaultOpen
           >
-            <div className="grid grid-cols-2 gap-3">
-              {visibleTops.map((top) => (
-                <OptionCard
-                  key={top.id}
-                  active={selectedTopId === top.id}
-                  title={top.shape}
-                  subtitle=""
-                  imageUrl={top.thumbnailUrl}
-                  price={top.price}
-                  onClick={() => onSelectTop(top.id)}
-                  compact
-                />
-              ))}
+            <div>
+              <div className="mb-2 border-b border-black/15 pb-1 text-sm font-semibold text-neutral-950">
+                Shape
+              </div>
+              <div className="grid grid-cols-4 gap-x-3 gap-y-4">
+                {visibleTops.map((top) => (
+                  <OptionCard
+                    key={top.id}
+                    active={selectedTopId === top.id}
+                    title={top.shape}
+                    imageUrl={top.thumbnailUrl}
+                    onClick={() => onSelectTop(top.id)}
+                  />
+                ))}
+              </div>
             </div>
           </ConfigAccordion>
 
@@ -215,32 +245,32 @@ export default function ConfigSidebar({
                 ? `${selectedLegs.material} • ${selectedLegs.shape}`
                 : "Choose a leg shape"
             }
-            stepLabel="Step 4/5"
             icon={<GitBranch className="h-5 w-5" />}
           >
-            <div className="grid grid-cols-2 gap-3">
-              {visibleLegs.map((legsOption) => (
-                <OptionCard
-                  key={legsOption.id}
-                  active={selectedLegsId === legsOption.id}
-                  title={legsOption.shape}
-                  subtitle=""
-                  imageUrl={legsOption.thumbnailUrl}
-                  price={legsOption.price}
-                  onClick={() => onSelectLegs(legsOption.id)}
-                  compact
-                />
-              ))}
+            <div>
+              <div className="mb-2 border-b border-black/15 pb-1 text-sm font-semibold text-neutral-950">
+                Leg Type
+              </div>
+              <div className="grid grid-cols-4 gap-x-3 gap-y-4">
+                {visibleLegs.map((legsOption) => (
+                  <OptionCard
+                    key={legsOption.id}
+                    active={selectedLegsId === legsOption.id}
+                    title={legsOption.shape}
+                    imageUrl={legsOption.thumbnailUrl}
+                    onClick={() => onSelectLegs(legsOption.id)}
+                  />
+                ))}
+              </div>
             </div>
           </ConfigAccordion>
 
           <ConfigAccordion
             title="Summary"
             subtitle={formatPrice(totalPrice)}
-            stepLabel="Step 5/5"
             icon={<Receipt className="h-5 w-5" />}
           >
-            <div className="rounded-3xl border border-black/8 bg-[#faf9f5] p-4">
+            <div className="rounded-2xl bg-white/65 p-3.5 shadow-sm shadow-black/5 ring-1 ring-black/6">
               <SummaryRow label="Product" value={product.name} />
               <SummaryRow label="Table Type" value={selectedTableType?.name ?? "Dining Table"} />
               <SummaryRow label="Table Top Shape" value={selectedTop?.shape ?? "-"} />
@@ -256,7 +286,7 @@ export default function ConfigSidebar({
 
               <button
                 type="button"
-                className="mt-5 w-full rounded-full bg-black px-5 py-3.5 text-sm font-medium text-white transition hover:bg-neutral-800"
+                className="mt-4 w-full rounded-full bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
               >
                 Generate Quote
               </button>
