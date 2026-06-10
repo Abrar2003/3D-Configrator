@@ -107,7 +107,12 @@ function DimensionGuide({ width, depth }) {
   );
 }
 
-function TableAssemblyContent({ selectedTop, selectedLegs, topGap }) {
+function TableAssemblyContent({
+  selectedTop,
+  selectedLegs,
+  topGap,
+  showDimensions,
+}) {
   const { scene: topSource } = useGLTF(selectedTop.modelUrl);
   const { scene: legsSource } = useGLTF(selectedLegs.modelUrl);
 
@@ -163,7 +168,9 @@ function TableAssemblyContent({ selectedTop, selectedLegs, topGap }) {
 
   return (
     <group>
-      <DimensionGuide width={assembly.guideWidth} depth={assembly.guideDepth} />
+      {showDimensions ? (
+        <DimensionGuide width={assembly.guideWidth} depth={assembly.guideDepth} />
+      ) : null}
       <primitive object={assembly.legs} position={assembly.legsPosition} />
       <primitive object={assembly.top} position={assembly.topPosition} />
     </group>
@@ -174,6 +181,7 @@ export default function TableAssembly({
   selectedTop,
   selectedLegs,
   topGap = -0.02,
+  showDimensions = true,
 }) {
   if (!selectedTop?.modelUrl || !selectedLegs?.modelUrl) {
     return null;
@@ -184,6 +192,7 @@ export default function TableAssembly({
       selectedTop={selectedTop}
       selectedLegs={selectedLegs}
       topGap={topGap}
+      showDimensions={showDimensions}
     />
   );
 }

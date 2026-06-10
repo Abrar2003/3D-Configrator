@@ -1,4 +1,12 @@
-import { Download, Hand, RotateCcw, Share2, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  Download,
+  Hand,
+  RotateCcw,
+  Ruler,
+  Share2,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 
 const placeholderActions = {
   zoomIn: () => console.log("Zoom in control is not wired yet."),
@@ -26,7 +34,13 @@ function ToolbarButton({ label, icon: Icon, onClick, active = false }) {
   );
 }
 
-export default function FloatingViewerToolbar({ panMode, onTogglePan, onReset }) {
+export default function FloatingViewerToolbar({
+  panMode,
+  showDimensions,
+  onTogglePan,
+  onToggleDimensions,
+  onReset,
+}) {
   return (
     <div className="absolute right-4 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-3 md:right-6">
       <ToolbarButton
@@ -39,6 +53,12 @@ export default function FloatingViewerToolbar({ panMode, onTogglePan, onReset })
         icon={Hand}
         active={panMode}
         onClick={onTogglePan}
+      />
+      <ToolbarButton
+        label={showDimensions ? "Hide dimensions" : "Show dimensions"}
+        icon={Ruler}
+        active={showDimensions}
+        onClick={onToggleDimensions}
       />
       <ToolbarButton
         label="Zoom in"

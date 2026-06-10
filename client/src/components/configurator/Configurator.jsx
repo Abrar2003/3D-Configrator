@@ -31,6 +31,26 @@ function resolvePlacementSide(slot, module) {
   return "right";
 }
 
+function resolveDefaultSofaInsertionSlot(validSlots, selectedModuleIds, product) {
+  if (validSlots.length === 1) {
+    return validSlots[0];
+  }
+
+  const lastSelectedModule = getSofaModuleById(
+    product,
+    selectedModuleIds[selectedModuleIds.length - 1]
+  );
+  const rightEndSlot = validSlots.find(
+    (slot) => slot.side === "right" && slot.index === selectedModuleIds.length
+  );
+
+  if (lastSelectedModule?.turnsLayout && rightEndSlot) {
+    return rightEndSlot;
+  }
+
+  return null;
+}
+
 export default function Configurator({ productType = "sofa" }) {
   const product = productType === "table" ? tableProduct : sofaProduct;
   const isSofa = product.productType === "sofa";
@@ -55,9 +75,9 @@ export default function Configurator({ productType = "sofa" }) {
   );
   const [selectedVariant, setSelectedVariant] = useState(defaultSofaVariant);
   const [pendingSofaModuleId, setPendingSofaModuleId] = useState("");
-  const [collisionCheckModuleIndex, setCollisionCheckModuleIndex] =
-    useState(null);
   const [panMode, setPanMode] = useState(false);
+  const [showDimensions, setShowDimensions] = useState(true);
+  const [selectedSofaModuleIndex, setSelectedSofaModuleIndex] = useState(null);
 
   const selectedModuleIds = useMemo(
     () => selectedModuleEntries.map((entry) => entry.id),
@@ -148,7 +168,7 @@ export default function Configurator({ productType = "sofa" }) {
     );
     setSelectedVariant(defaultSofaVariant);
     setPendingSofaModuleId("");
-    setCollisionCheckModuleIndex(null);
+    setSelectedSofaModuleIndex(null);
   };
 
   const handleAddSofaModuleAtIndex = (moduleId, insertIndex) => {
@@ -169,9 +189,11 @@ export default function Configurator({ productType = "sofa" }) {
     );
     const selectedSlot = Number.isInteger(insertIndex)
       ? validSlots.find((slot) => slot.index === insertIndex)
-      : validSlots.length === 1
-        ? validSlots[0]
-        : null;
+      : resolveDefaultSofaInsertionSlot(
+          validSlots,
+          selectedModuleIds,
+          sofaProduct
+        );
 
     if (!selectedSlot && validSlots.length > 1) {
       setPendingSofaModuleId(moduleId);
@@ -207,31 +229,19 @@ export default function Configurator({ productType = "sofa" }) {
     }
 
     setSelectedModuleEntries(nextModuleEntries);
-    setCollisionCheckModuleIndex(safeInsertIndex);
+    setSelectedSofaModuleIndex(safeInsertIndex);
     setPendingSofaModuleId("");
   };
 
   const handleRemoveSofaModule = (indexToRemove) => {
     setPendingSofaModuleId("");
-    setCollisionCheckModuleIndex(null);
+    setSelectedSofaModuleIndex(null);
     setSelectedModuleEntries((currentModuleEntries) => {
       if (
         indexToRemove < 0 ||
         indexToRemove >= currentModuleEntries.length ||
         currentModuleEntries.length <= 1
       ) {
-        return currentModuleEntries;
-      }
-
-      return currentModuleEntries.filter((_, index) => index !== indexToRemove);
-    });
-  };
-
-  const handleRemoveCollidingSofaModule = (indexToRemove) => {
-    setPendingSofaModuleId("");
-    setCollisionCheckModuleIndex(null);
-    setSelectedModuleEntries((currentModuleEntries) => {
-      if (indexToRemove < 0 || indexToRemove >= currentModuleEntries.length) {
         return currentModuleEntries;
       }
 
@@ -254,13 +264,17 @@ export default function Configurator({ productType = "sofa" }) {
             onSelectSofaInsertionSlot={(insertIndex) =>
               handleAddSofaModuleAtIndex(pendingSofaModuleId, insertIndex)
             }
-            collisionCheckModuleIndex={collisionCheckModuleIndex}
-            onRemoveCollidingSofaModule={handleRemoveCollidingSofaModule}
+            selectedSofaModuleIndex={selectedSofaModuleIndex}
+            onSelectSofaModule={setSelectedSofaModuleIndex}
+            onRemoveSofaModule={handleRemoveSofaModule}
             panMode={panMode}
+            showDimensions={showDimensions}
           />
           <FloatingViewerToolbar
             panMode={panMode}
+            showDimensions={showDimensions}
             onTogglePan={() => setPanMode((current) => !current)}
+            onToggleDimensions={() => setShowDimensions((current) => !current)}
             onReset={handleReset}
           />
           <PricePill totalPrice={totalPrice} />

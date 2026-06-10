@@ -31,9 +31,11 @@ export default function ProductScene({
   selectedVariant,
   pendingSofaInsertionSlots = [],
   onSelectSofaInsertionSlot,
-  collisionCheckModuleIndex,
-  onRemoveCollidingSofaModule,
+  selectedSofaModuleIndex,
+  onSelectSofaModule,
+  onRemoveSofaModule,
   panMode = false,
+  showDimensions = true,
 }) {
   const isSofa = product?.productType === "sofa";
   const sofaValidation = isSofa
@@ -53,6 +55,11 @@ export default function ProductScene({
         camera={{ position: isSofa ? [4.8, 2.5, 5.8] : [4.5, 2.8, 5.5], fov: 33 }}
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+        onPointerMissed={() => {
+          if (isSofa) {
+            onSelectSofaModule?.(null);
+          }
+        }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 0.8;
@@ -122,14 +129,17 @@ export default function ProductScene({
               selectedVariant={selectedVariant}
               pendingInsertionSlots={pendingSofaInsertionSlots}
               onSelectInsertionSlot={onSelectSofaInsertionSlot}
-              collisionCheckModuleIndex={collisionCheckModuleIndex}
-              onRemoveCollidingModule={onRemoveCollidingSofaModule}
+              selectedModuleIndex={selectedSofaModuleIndex}
+              onSelectModule={onSelectSofaModule}
+              onRemoveModule={onRemoveSofaModule}
+              showDimensions={showDimensions}
             />
           ) : (
             <TableAssembly
               selectedTop={selectedTop}
               selectedLegs={selectedLegs}
               topGap={0}
+              showDimensions={showDimensions}
             />
           )}
 

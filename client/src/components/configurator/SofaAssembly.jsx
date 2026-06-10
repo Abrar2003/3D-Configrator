@@ -1,6 +1,7 @@
-import { Component, useEffect, useMemo } from "react";
+import { Component, useMemo } from "react";
 import * as THREE from "three";
 import { Html, Line, Text, useGLTF } from "@react-three/drei";
+import { Trash2 } from "lucide-react";
 import {
   calculateSofaDimensions,
   getSofaModuleModelUrl,
@@ -8,7 +9,7 @@ import {
   validateSofaConfiguration,
 } from "../../utils/sofaConfig";
 
-const COLLISION_TOLERANCE_METERS = 0.03;
+const TURN_CONNECTION_TRIM_METERS = 0.001;
 
 function toVector(value, fallback = [0, 0, 0]) {
   return Array.isArray(value) && value.length === 3 ? value : fallback;
@@ -53,57 +54,66 @@ function getProjectionRange(points, axis) {
   );
 }
 
-function getBoxFootprint(box, position = [0, 0, 0]) {
+function getModuleConnectionSize(module, measuredRowSize, measuredFrontSize) {
+  const catalogWidth = Number(module.widthCm) / 100;
+  const catalogDepth = Number(module.depthCm) / 100;
+
   return {
-    minX: box.min.x + position[0],
-    maxX: box.max.x + position[0],
-    minZ: box.min.z + position[2],
-    maxZ: box.max.z + position[2],
+    rowSize:
+      Number.isFinite(catalogWidth) && catalogWidth > 0
+        ? catalogWidth
+        : measuredRowSize,
+    frontSize:
+      Number.isFinite(catalogDepth) && catalogDepth > 0
+        ? catalogDepth
+        : measuredFrontSize,
   };
 }
 
-function getCenteredFootprint(position, size) {
-  const [depth, , width] = size;
-
-  return {
-    minX: position[0] - depth / 2,
-    maxX: position[0] + depth / 2,
-    minZ: position[2] - width / 2,
-    maxZ: position[2] + width / 2,
-  };
-}
-
-function footprintsCollide(first, second) {
-  const xOverlap =
-    Math.min(first.maxX, second.maxX) - Math.max(first.minX, second.minX);
-  const zOverlap =
-    Math.min(first.maxZ, second.maxZ) - Math.max(first.minZ, second.minZ);
-
-  return (
-    xOverlap > COLLISION_TOLERANCE_METERS &&
-    zOverlap > COLLISION_TOLERANCE_METERS
+function getFootprintFromCorners(corners) {
+  return corners.reduce(
+    (bounds, point) => ({
+      minX: Math.min(bounds.minX, point[0]),
+      maxX: Math.max(bounds.maxX, point[0]),
+      minZ: Math.min(bounds.minZ, point[2]),
+      maxZ: Math.max(bounds.maxZ, point[2]),
+    }),
+    { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity }
   );
 }
 
-function findCollidingRenderedModuleIndex(objects, moduleIndex) {
-  if (!Number.isInteger(moduleIndex)) {
-    return -1;
+function getConnectionFootprint(anchor, rowDirection, frontDirection, rowSize, frontSize, offset) {
+  const footprintAnchor = addVectors(anchor, offset);
+
+  return getFootprintFromCorners([
+    footprintAnchor,
+    addVectors(footprintAnchor, scaleVector(rowDirection, rowSize)),
+    addVectors(footprintAnchor, scaleVector(frontDirection, frontSize)),
+    addVectors(
+      addVectors(footprintAnchor, scaleVector(rowDirection, rowSize)),
+      scaleVector(frontDirection, frontSize)
+    ),
+  ]);
+}
+
+function getRenderedFootprintBounds(objects = []) {
+  const footprints = objects
+    .map((object) => object.footprint)
+    .filter(Boolean);
+
+  if (!footprints.length) {
+    return null;
   }
 
-  const testedObject = objects.find((object) => object.index === moduleIndex);
-
-  if (!testedObject?.footprint) {
-    return -1;
-  }
-
-  const collidingObject = objects.find(
-    (object) =>
-      object.index !== moduleIndex &&
-      object.footprint &&
-      footprintsCollide(testedObject.footprint, object.footprint)
+  return footprints.reduce(
+    (bounds, footprint) => ({
+      minX: Math.min(bounds.minX, footprint.minX),
+      maxX: Math.max(bounds.maxX, footprint.maxX),
+      minZ: Math.min(bounds.minZ, footprint.minZ),
+      maxZ: Math.max(bounds.maxZ, footprint.maxZ),
+    }),
+    { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity }
   );
-
-  return collidingObject ? moduleIndex : -1;
 }
 
 function getModuleRotation(module, moduleEntry) {
@@ -156,19 +166,25 @@ function DimensionLabel({
   );
 }
 
-function SofaDimensionGuide({ dimensions, renderedWidthMeters }) {
-  const width = renderedWidthMeters || dimensions.widthCm / 100;
-  const depth = dimensions.depthCm / 100;
+function SofaDimensionGuide({ dimensions, footprintBounds }) {
+  const width = footprintBounds
+    ? footprintBounds.maxZ - footprintBounds.minZ
+    : dimensions.widthCm / 100;
+  const depth = footprintBounds
+    ? footprintBounds.maxX - footprintBounds.minX
+    : dimensions.depthCm / 100;
   const height = dimensions.heightCm / 100;
   const y = 0.028;
   const lineColor = "#252525";
   const labelGap = 0.16;
-  const connectorPlaneX = 0;
-  const frontX = depth;
-  const widthX = connectorPlaneX + 0.2;
-  const depthZ = -0.2;
-  const heightX = connectorPlaneX + 0.28;
-  const heightZ = width;
+  const minX = footprintBounds?.minX ?? 0;
+  const maxX = footprintBounds?.maxX ?? depth;
+  const minZ = footprintBounds?.minZ ?? 0;
+  const maxZ = footprintBounds?.maxZ ?? width;
+  const widthX = maxX + labelGap;
+  const depthZ = minZ - labelGap;
+  const heightX = maxX + labelGap * 1.5;
+  const heightZ = maxZ;
 
   if (!width || !depth || !height) {
     return null;
@@ -178,8 +194,8 @@ function SofaDimensionGuide({ dimensions, renderedWidthMeters }) {
     <group>
       <Line
         points={[
-          [widthX, y, 0],
-          [widthX, y, width],
+          [widthX, y, minZ],
+          [widthX, y, maxZ],
         ]}
         color={lineColor}
         lineWidth={1.45}
@@ -188,8 +204,8 @@ function SofaDimensionGuide({ dimensions, renderedWidthMeters }) {
       />
       <Line
         points={[
-          [frontX, y, depthZ],
-          [connectorPlaneX, y, depthZ],
+          [minX, y, depthZ],
+          [maxX, y, depthZ],
         ]}
         color={lineColor}
         lineWidth={1.45}
@@ -208,15 +224,15 @@ function SofaDimensionGuide({ dimensions, renderedWidthMeters }) {
       />
 
       <DimensionLabel
-        position={[widthX + labelGap, y + 0.006, width / 2]}
+        position={[widthX + labelGap, y + 0.006, (minZ + maxZ) / 2]}
         rotation={[-Math.PI / 2, 0, Math.PI / 2]}
       >
-        {formatCm(dimensions.widthCm)}
+        {formatCm(width * 100)}
       </DimensionLabel>
       <DimensionLabel
-        position={[frontX / 2, y + 0.006, depthZ - labelGap]}
+        position={[(minX + maxX) / 2, y + 0.006, depthZ - labelGap]}
       >
-        {formatCm(dimensions.depthCm)}
+        {formatCm(depth * 100)}
       </DimensionLabel>
       <DimensionLabel
         position={[heightX + 0.08, height / 2, heightZ]}
@@ -308,6 +324,46 @@ function SofaInsertionMarkers({
   );
 }
 
+function getModuleActionPosition(moduleObject) {
+  if (moduleObject?.footprint) {
+    return [
+      (moduleObject.footprint.minX + moduleObject.footprint.maxX) / 2,
+      0.98,
+      (moduleObject.footprint.minZ + moduleObject.footprint.maxZ) / 2,
+    ];
+  }
+
+  return [
+    moduleObject.position[0],
+    moduleObject.position[1] + 0.9,
+    moduleObject.position[2],
+  ];
+}
+
+function SofaModuleActions({ moduleObject, canRemove, onRemove }) {
+  if (!moduleObject || !canRemove) {
+    return null;
+  }
+
+  return (
+    <Html position={getModuleActionPosition(moduleObject)} center transform={false}>
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onRemove?.(moduleObject.index);
+        }}
+        className="relative inline-flex h-14 w-14 items-center justify-center rounded-xl border border-black/10 bg-white text-neutral-950 shadow-2xl shadow-black/18 transition hover:-translate-y-0.5 hover:border-black/20"
+        aria-label={`Remove ${moduleObject.module.name}`}
+        title={`Remove ${moduleObject.module.name}`}
+      >
+        <span className="absolute -top-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 border-l border-t border-black/10 bg-white" />
+        <Trash2 className="relative h-5 w-5" />
+      </button>
+    </Html>
+  );
+}
+
 export default function SofaAssembly({
   product,
   selectedModuleIds,
@@ -315,8 +371,10 @@ export default function SofaAssembly({
   selectedVariant,
   pendingInsertionSlots = [],
   onSelectInsertionSlot,
-  collisionCheckModuleIndex,
-  onRemoveCollidingModule,
+  selectedModuleIndex,
+  onSelectModule,
+  onRemoveModule,
+  showDimensions = true,
 }) {
   const validation = validateSofaConfiguration(product, selectedModuleIds);
   const selectedModules = getSelectedSofaModules(selectedModuleIds, product);
@@ -357,6 +415,14 @@ export default function SofaAssembly({
           fallbackCenter[2] + offset[2],
         ];
         const fallbackSize = [fallbackDepth, fallbackHeight, fallbackWidth];
+        const fallbackFootprint = getConnectionFootprint(
+          currentAnchor,
+          currentRowDirection,
+          currentFrontDirection,
+          fallbackWidth,
+          fallbackDepth,
+          offset
+        );
         nextAnchor = addVectors(
           currentAnchor,
           scaleVector(currentRowDirection, fallbackWidth)
@@ -385,10 +451,9 @@ export default function SofaAssembly({
               position: fallbackPosition,
               size: fallbackSize,
               rotation: [0, layout.segmentAngle, 0],
-              footprint: getCenteredFootprint(fallbackPosition, fallbackSize),
+              footprint: fallbackFootprint,
             },
           ],
-          renderedWidthMeters: layout.renderedWidthMeters + fallbackWidth,
           slotPositions: [
             ...layout.slotPositions,
             addVectors(nextAnchor, scaleVector(nextFrontDirection, 0.54)).map(
@@ -409,24 +474,54 @@ export default function SofaAssembly({
       const frontRange = getProjectionRange(points, currentFrontDirection);
       const rowSize = rowRange.max - rowRange.min;
       const frontSize = frontRange.max - frontRange.min;
-      const desiredFront = dotVector(currentAnchor, currentFrontDirection);
-      const desiredRow = dotVector(currentAnchor, currentRowDirection);
+      const connectionSize = getModuleConnectionSize(
+        module,
+        rowSize,
+        frontSize
+      );
+      const desiredFront =
+        dotVector(currentAnchor, currentFrontDirection) +
+        connectionSize.frontSize / 2;
+      const desiredRow =
+        dotVector(currentAnchor, currentRowDirection) +
+        connectionSize.rowSize / 2;
+      const currentFrontCenter = (frontRange.min + frontRange.max) / 2;
+      const currentRowCenter = (rowRange.min + rowRange.max) / 2;
       const alignmentOffset = addVectors(
-        scaleVector(currentFrontDirection, desiredFront - frontRange.min),
-        scaleVector(currentRowDirection, desiredRow - rowRange.min)
+        scaleVector(currentFrontDirection, desiredFront - currentFrontCenter),
+        scaleVector(currentRowDirection, desiredRow - currentRowCenter)
       );
       const position = [
         alignmentOffset[0] + offset[0],
         -box.min.y + offset[1],
         alignmentOffset[2] + offset[2],
       ];
-      const footprint = getBoxFootprint(box, position);
-      nextAnchor = addVectors(currentAnchor, scaleVector(currentRowDirection, rowSize));
+      const footprint = getConnectionFootprint(
+        currentAnchor,
+        currentRowDirection,
+        currentFrontDirection,
+        connectionSize.rowSize,
+        connectionSize.frontSize,
+        offset
+      );
+      nextAnchor = addVectors(
+        currentAnchor,
+        scaleVector(currentRowDirection, connectionSize.rowSize)
+      );
 
       if (module.turnsLayout) {
         nextAnchor = addVectors(
-          addVectors(currentAnchor, scaleVector(currentRowDirection, rowSize)),
-          scaleVector(currentFrontDirection, frontSize)
+          addVectors(
+            currentAnchor,
+            scaleVector(
+              currentRowDirection,
+              connectionSize.rowSize - TURN_CONNECTION_TRIM_METERS
+            )
+          ),
+          scaleVector(
+            currentFrontDirection,
+            connectionSize.frontSize - TURN_CONNECTION_TRIM_METERS
+          )
         );
         nextRowDirection = scaleVector(currentFrontDirection, turnDirection);
         nextFrontDirection = scaleVector(currentRowDirection, -turnDirection);
@@ -444,7 +539,6 @@ export default function SofaAssembly({
             footprint,
           },
         ],
-        renderedWidthMeters: layout.renderedWidthMeters + rowSize,
         slotPositions: [
           ...layout.slotPositions,
           addVectors(nextAnchor, scaleVector(nextFrontDirection, 0.54)).map(
@@ -458,7 +552,6 @@ export default function SofaAssembly({
       };
     }, {
       objects: [],
-      renderedWidthMeters: 0,
       slotPositions: [[0.54, 0.64, 0]],
       anchor: [0, 0, 0],
       rowDirection: [0, 0, 1],
@@ -466,20 +559,17 @@ export default function SofaAssembly({
       segmentAngle: 0,
     });
   }, [loadedModels, selectedModuleEntries, selectedModules]);
-  const collidingRenderedModuleIndex = useMemo(
-    () =>
-      findCollidingRenderedModuleIndex(
-        assembly.objects,
-        collisionCheckModuleIndex
-      ),
-    [assembly.objects, collisionCheckModuleIndex]
+  const footprintBounds = useMemo(
+    () => getRenderedFootprintBounds(assembly.objects),
+    [assembly.objects]
   );
-
-  useEffect(() => {
-    if (collidingRenderedModuleIndex >= 0) {
-      onRemoveCollidingModule?.(collidingRenderedModuleIndex);
-    }
-  }, [collidingRenderedModuleIndex, onRemoveCollidingModule]);
+  const selectedModuleObject = useMemo(
+    () =>
+      Number.isInteger(selectedModuleIndex)
+        ? assembly.objects.find((object) => object.index === selectedModuleIndex)
+        : null,
+    [assembly.objects, selectedModuleIndex]
+  );
 
   if (!validation.valid) {
     return null;
@@ -487,14 +577,21 @@ export default function SofaAssembly({
 
   return (
     <group>
-      <SofaDimensionGuide
-        dimensions={dimensions}
-        renderedWidthMeters={assembly.renderedWidthMeters}
-      />
+      {showDimensions ? (
+        <SofaDimensionGuide
+          dimensions={dimensions}
+          footprintBounds={footprintBounds}
+        />
+      ) : null}
       <SofaInsertionMarkers
         slots={pendingInsertionSlots}
         slotPositions={assembly.slotPositions}
         onSelectInsertionSlot={onSelectInsertionSlot}
+      />
+      <SofaModuleActions
+        moduleObject={selectedModuleObject}
+        canRemove={selectedModuleIds.length > 1}
+        onRemove={onRemoveModule}
       />
       {assembly.objects.map((moduleObject) => (
         <SofaModuleErrorBoundary
@@ -514,6 +611,10 @@ export default function SofaAssembly({
               castShadow
               receiveShadow
               position={moduleObject.position}
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelectModule?.(moduleObject.index);
+              }}
             >
               <boxGeometry args={moduleObject.size} />
               <meshStandardMaterial
@@ -523,7 +624,14 @@ export default function SofaAssembly({
               />
             </mesh>
           ) : (
-            <primitive object={moduleObject.clone} position={moduleObject.position} />
+            <primitive
+              object={moduleObject.clone}
+              position={moduleObject.position}
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelectModule?.(moduleObject.index);
+              }}
+            />
           )}
         </SofaModuleErrorBoundary>
       ))}

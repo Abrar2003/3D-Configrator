@@ -4,25 +4,55 @@ const SOFA_VARIANTS = [
     material: "Alpine",
     colour: "Sangria",
     label: "Alpine Sangria",
-    thumbnailUrl: "/images/sofa/colours/alpine_sangria.jpg",
+    thumbnailUrl: "/images/sofa/colours/alpine_sangria.jpeg",
   },
   {
     id: "alpine_gray",
     material: "Alpine",
     colour: "Gray",
     label: "Alpine Gray",
-    thumbnailUrl: "/images/sofa/colours/alpine_gray.jpg",
+    thumbnailUrl: "/images/sofa/colours/alpine_gray.jpeg",
   },
   {
     id: "alpine_ivory",
     material: "Alpine",
     colour: "Ivory",
     label: "Alpine Ivory",
-    thumbnailUrl: "/images/sofa/colours/alpine_ivory.jpg",
+    thumbnailUrl: "/images/sofa/colours/alpine_ivory.jpeg",
   },
 ];
 
-const AVAILABLE_SOFA_MODEL_VARIANT = "alpine_ivory";
+const DEFAULT_SOFA_MODEL_VARIANT = "alpine_ivory";
+const SOFA_MODEL_VARIANT_BY_BASE_ID = {
+  armless_1_seater_75: {
+    alpine_gray: "armless_1_seater_75",
+    alpine_sangria: "armless_1_seater_75",
+  },
+  armless_1_5_seater_90: {
+    alpine_gray: "armless_1_5_seater_91",
+    alpine_sangria: "armless_1_5_seater_91",
+  },
+  corner_element_103: {
+    alpine_gray: "corner_element_103",
+    alpine_sangria: "corner_element_103",
+  },
+  left_1_5_seater_arm_120: {
+    alpine_gray: "left_1_5_seater_arm_120",
+    alpine_sangria: "left_1_5_seater_arm_120",
+  },
+  longchair_left_130: {
+    alpine_gray: "longchair_left_130",
+    alpine_sangria: "longchair_left_130",
+  },
+  right1_1_5_seater_arm_120: {
+    alpine_gray: "right_1_5_seater_arm_120",
+    alpine_sangria: "right_1_5_seater_arm_120",
+  },
+  longchair_right_130: {
+    alpine_gray: "longchair_right_130",
+    alpine_sangria: "longchair_right_130",
+  },
+};
 
 const LEFT_CONNECTABLE_ROTATION = [0, Math.PI / 2, 0];
 const RIGHT_ARM_ROTATION = [0, Math.PI / 2, 0];
@@ -33,11 +63,16 @@ const CORNER_ROTATION_BY_PLACEMENT = {
 
 const createVariantModels = (baseModelId) =>
   SOFA_VARIANTS.reduce((acc, variant) => {
-    const fileVariantId = AVAILABLE_SOFA_MODEL_VARIANT;
+    const variantModelId =
+      SOFA_MODEL_VARIANT_BY_BASE_ID[baseModelId]?.[variant.id] ?? baseModelId;
+    const fileVariantId =
+      SOFA_MODEL_VARIANT_BY_BASE_ID[baseModelId]?.[variant.id]
+        ? variant.id
+        : DEFAULT_SOFA_MODEL_VARIANT;
 
     acc[variant.id] = {
       variantId: variant.id,
-      modelUrl: `/models/sofa/modules/${baseModelId}_${fileVariantId}.glb`,
+      modelUrl: `/models/sofa/modules/${variantModelId}_${fileVariantId}.glb`,
     };
     return acc;
   }, {});
@@ -145,30 +180,7 @@ export const sofaProduct = {
       blocksAfterSelect: [],
     },
 
-    {
-      id: "footstool_round_95",
-      baseModelId: "footstool_round_95",
-      name: "Footstool round",
-      groupId: "without_arms",
-      dimensionsLabel: "95x95 cm",
-      widthCm: 95,
-      depthCm: 95,
-      heightCm: 45,
-      price: 650,
-      repeatable: true,
-      standalone: true,
-      thumbnailUrl: "/images/sofa/modules/footstool_round_95.png",
-      scale: [1, 1, 1],
-      offset: [0, 0, 0],
-      variantModels: createVariantModels("footstool_round_95"),
-      connectors: {
-        left: "open",
-        right: "none",
-        back: "open",
-        front: "none",
-      },
-      blocksAfterSelect: [],
-    },
+  
 
     {
       id: "left_1_seater_arm_105",
@@ -181,7 +193,7 @@ export const sofaProduct = {
       heightCm: 78,
       price: 1195,
       repeatable: false,
-      thumbnailUrl: "/images/sofa/modules/left_1_seater_arm_105.png",
+      thumbnailUrl: "/images/sofa/modules/left_1_5_seater_arm_105.png",
       scale: [1, 1, 1],
       rotation: LEFT_CONNECTABLE_ROTATION,
       offset: [0, 0, 0],
@@ -255,7 +267,7 @@ export const sofaProduct = {
       heightCm: 78,
       price: 1195,
       repeatable: false,
-      thumbnailUrl: "/images/sofa/modules/right_1_seater_arm_105.png",
+      thumbnailUrl: "/images/sofa/modules/right1_1_5_seater_arm_105.png",
       scale: [1, 1, 1],
       rotation: RIGHT_ARM_ROTATION,
       offset: [0, 0, 0],

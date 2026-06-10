@@ -128,22 +128,24 @@ function SofaModuleOption({
         }`}
       >
         <div
-          className={`relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-white transition duration-200 ${
+          className={`relative flex h-20 w-20 items-center justify-center rounded-full bg-white transition duration-200 ${
             selected
               ? "border-[3px] border-[#d9aa3a] shadow-[0_12px_26px_rgba(0,0,0,0.16)]"
               : "shadow-[0_10px_24px_rgba(0,0,0,0.10)] group-hover:shadow-[0_14px_28px_rgba(0,0,0,0.14)]"
           }`}
         >
-          {module.thumbnailUrl ? (
-            <img
-              src={module.thumbnailUrl}
-              alt=""
-              loading="lazy"
-              className="h-full w-full object-contain p-3"
-            />
-          ) : (
-            <div className="h-8 w-8 rounded-full bg-neutral-200" />
-          )}
+          <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full">
+            {module.thumbnailUrl ? (
+              <img
+                src={module.thumbnailUrl}
+                alt=""
+                loading="lazy"
+                className="h-full w-full object-contain p-3"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-neutral-200" />
+            )}
+          </span>
 
           {disabled ? (
             <span className="absolute inset-0 flex items-center justify-center bg-white/58 text-neutral-800">
@@ -152,7 +154,7 @@ function SofaModuleOption({
           ) : null}
 
           {count > 0 ? (
-            <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-black px-1.5 text-[11px] font-semibold text-white">
+            <span className="absolute -right-1 -top-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-black px-1.5 text-[11px] font-semibold text-white ring-2 ring-white">
               {count}
             </span>
           ) : null}
