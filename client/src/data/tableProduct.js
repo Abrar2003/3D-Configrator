@@ -1,5 +1,6 @@
 export const tableProduct = {
   id: "custom-table-001",
+  productType: "table",
   name: "Mango Wood Dining Table",
   basePrice: 25000,
   defaultConfig: {

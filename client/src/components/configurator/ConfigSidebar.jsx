@@ -1,7 +1,18 @@
-import { GitBranch, LayoutGrid, Palette, Receipt, Square, Undo2 } from "lucide-react";
+import {
+  Armchair,
+  GitBranch,
+  LayoutGrid,
+  Lock,
+  Minus,
+  Palette,
+  Receipt,
+  Square,
+  Undo2,
+} from "lucide-react";
 import ConfigAccordion from "./ConfigAccordion";
 import OptionCard from "./OptionCard";
 import { formatPrice } from "../../utils/priceCalculator";
+import { getSelectedSofaModules } from "../../utils/sofaConfig";
 
 const MATERIAL_IMAGE_BY_NAME = {
   "Natural Mango Wood": "/images/table/material/natural_mango_wood.jpeg",
@@ -57,6 +68,309 @@ function MaterialSwatch({ active, material, onClick }) {
   );
 }
 
+function SofaSwatch({ active, imageUrl, colorHex, label, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={active}
+      title={label}
+      className={`flex h-12 w-12 items-center justify-center rounded-full bg-white p-0.5 transition ${
+        active
+          ? "scale-95 shadow-xl shadow-black/25"
+          : "shadow-md shadow-black/15 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20"
+      }`}
+    >
+      <span
+        className={`block h-full w-full overflow-hidden rounded-full ${
+          active ? "ring-2 ring-black ring-offset-2 ring-offset-[#faf9f5]" : ""
+        }`}
+        style={{ backgroundColor: colorHex ?? "#d8d8d8" }}
+      >
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt=""
+            loading="lazy"
+            className="h-full w-full object-cover"
+          />
+        ) : null}
+      </span>
+    </button>
+  );
+}
+
+function SofaModuleOption({
+  module,
+  count,
+  disabled,
+  pending,
+  onAdd,
+  onRemoveLast,
+}) {
+  const selected = count > 0;
+
+  return (
+    <div className="relative flex w-[104px] shrink-0 flex-col items-center text-center">
+      <button
+        type="button"
+        onClick={onAdd}
+        disabled={disabled}
+        aria-label={module.name}
+        aria-pressed={selected}
+        className={`group relative flex w-full flex-col items-center bg-transparent p-0 transition duration-200 ${
+          disabled
+            ? "cursor-not-allowed opacity-45"
+            : selected
+              ? "scale-[0.98]"
+              : "hover:-translate-y-0.5"
+        }`}
+      >
+        <div
+          className={`relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-white transition duration-200 ${
+            selected
+              ? "border-[3px] border-[#d9aa3a] shadow-[0_12px_26px_rgba(0,0,0,0.16)]"
+              : "shadow-[0_10px_24px_rgba(0,0,0,0.10)] group-hover:shadow-[0_14px_28px_rgba(0,0,0,0.14)]"
+          }`}
+        >
+          {module.thumbnailUrl ? (
+            <img
+              src={module.thumbnailUrl}
+              alt=""
+              loading="lazy"
+              className="h-full w-full object-contain p-3"
+            />
+          ) : (
+            <div className="h-8 w-8 rounded-full bg-neutral-200" />
+          )}
+
+          {disabled ? (
+            <span className="absolute inset-0 flex items-center justify-center bg-white/58 text-neutral-800">
+              <Lock className="h-5 w-5" />
+            </span>
+          ) : null}
+
+          {count > 0 ? (
+            <span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-black px-1.5 text-[11px] font-semibold text-white">
+              {count}
+            </span>
+          ) : null}
+        </div>
+
+        <span className="mt-2 min-h-[30px] text-xs font-semibold leading-[15px] text-neutral-950">
+          {module.name}
+        </span>
+        <span className="mt-1 text-[11px] font-medium text-neutral-500">
+          {module.dimensionsLabel}
+        </span>
+      </button>
+
+      {pending ? (
+        <div className="mt-2 rounded-full bg-amber-100 px-3 py-1 text-[11px] font-semibold text-amber-900">
+          Choose position in view
+        </div>
+      ) : null}
+
+      {count > 0 ? (
+        <button
+          type="button"
+          onClick={onRemoveLast}
+          disabled={count <= 0}
+          aria-label={`Remove ${module.name}`}
+          className="mt-2 inline-flex h-7 items-center gap-1 rounded-full border border-black/10 bg-white px-2.5 text-[11px] font-semibold text-neutral-700 shadow-sm shadow-black/5 transition hover:border-black/20 hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Minus className="h-3 w-3" />
+          Remove
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function formatDimensions(dimensions) {
+  return `${Math.round(dimensions.widthCm)}W x ${Math.round(
+    dimensions.depthCm
+  )}D x ${Math.round(dimensions.heightCm)}H cm`;
+}
+
+function SofaSidebar({
+  product,
+  selectedModuleIds,
+  selectedVariant,
+  selectedVariantOption,
+  pendingSofaModuleId,
+  disabledSofaOptionIds,
+  sofaDimensions,
+  totalPrice,
+  onAddSofaModule,
+  onRemoveSofaModule,
+  onSelectSofaVariant,
+  onReset,
+}) {
+  const selectedModules = getSelectedSofaModules(selectedModuleIds, product);
+  const moduleCounts = selectedModuleIds.reduce((counts, moduleId) => {
+    counts.set(moduleId, (counts.get(moduleId) ?? 0) + 1);
+    return counts;
+  }, new Map());
+
+  return (
+    <aside className="border-t border-black/10 bg-white lg:h-screen lg:border-l lg:border-t-0">
+      <div className="flex min-h-0 flex-col overflow-hidden lg:h-full">
+        <header className="shrink-0 border-b border-black/8 px-5 pb-5 pt-6 sm:px-6 lg:px-8">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.28em] text-neutral-400">
+                Premium Configurator
+              </p>
+              <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-neutral-950">
+                Configure Your Sofa
+              </h1>
+              <p className="mt-3 max-w-sm text-sm leading-6 text-neutral-500">
+                Build a modular layout, then choose the baked material variant.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onReset}
+              className="inline-flex items-center gap-2 rounded-full border border-black/10 px-4 py-2 text-sm font-medium text-neutral-700 transition hover:border-black/20 hover:bg-[#faf9f5]"
+            >
+              <Undo2 className="h-4 w-4" />
+              Reset
+            </button>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-6 sm:px-6 lg:px-7">
+          <ConfigAccordion
+            title="Sofa Elements"
+            subtitle={`${selectedModuleIds.length} selected`}
+            icon={<Armchair className="h-5 w-5" />}
+            defaultOpen
+          >
+            <div className="grid gap-5">
+              {product.moduleGroups.map((group) => {
+                const modules = product.modules.filter(
+                  (module) => module.groupId === group.id
+                );
+
+                return (
+                  <div key={group.id}>
+                    <div className="mb-3 border-b border-black/15 pb-1 text-sm font-semibold text-neutral-950">
+                      {group.name}
+                    </div>
+                    <div className="grid grid-cols-3 gap-x-3 gap-y-5">
+                      {modules.map((module) => {
+                        const count = moduleCounts.get(module.id) ?? 0;
+                        const disabled = disabledSofaOptionIds.has(module.id);
+                        const lastSelectedIndex = selectedModuleIds.lastIndexOf(module.id);
+
+                        return (
+                          <SofaModuleOption
+                            key={module.id}
+                            module={module}
+                            count={count}
+                            disabled={disabled}
+                            pending={pendingSofaModuleId === module.id}
+                            onAdd={() => onAddSofaModule(module.id)}
+                            onRemoveLast={() => onRemoveSofaModule(lastSelectedIndex)}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </ConfigAccordion>
+
+          <ConfigAccordion
+            title="Material / Colour Variant"
+            subtitle={selectedVariantOption?.label}
+            icon={<Palette className="h-5 w-5" />}
+            defaultOpen
+          >
+            <div className="flex flex-wrap gap-3">
+              {product.variants.map((variant) => (
+                <SofaSwatch
+                  key={variant.id}
+                  active={selectedVariant === variant.id}
+                  imageUrl={variant.thumbnailUrl}
+                  colorHex={variant.colorHex}
+                  label={variant.label}
+                  onClick={() => onSelectSofaVariant(variant.id)}
+                />
+              ))}
+            </div>
+          </ConfigAccordion>
+
+          <ConfigAccordion
+            title="Overview"
+            subtitle={formatPrice(totalPrice)}
+            icon={<Receipt className="h-5 w-5" />}
+            defaultOpen
+          >
+            <div className="rounded-2xl bg-white/65 p-3.5 shadow-sm shadow-black/5 ring-1 ring-black/6">
+              <SummaryRow label="Product" value={product.name} />
+              <SummaryRow
+                label="Modules"
+                value={selectedModules.map((module) => module.name).join(", ") || "-"}
+              />
+              <SummaryRow label="Variant" value={selectedVariantOption?.label ?? "-"} />
+              <SummaryRow label="Dimensions" value={formatDimensions(sofaDimensions)} />
+              <div className="my-3 grid gap-2">
+                {selectedModules.map((module, index) => (
+                  <div
+                    key={`${module.id}-${index}`}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-black/8 bg-white px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-neutral-950">
+                        {module.name}
+                      </div>
+                      <div className="text-xs text-neutral-500">
+                        {module.dimensionsLabel}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onRemoveSofaModule(index)}
+                      disabled={selectedModuleIds.length <= 1}
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-black/10 text-neutral-700 transition hover:border-black/20 hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label={`Remove ${module.name}`}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="my-2 border-t border-black/8" />
+              <SummaryRow label="Base Price" value={formatPrice(product.basePrice)} />
+              <SummaryRow
+                label="Modules Price"
+                value={formatPrice(
+                  selectedModules.reduce((total, module) => total + module.price, 0)
+                )}
+              />
+              <SummaryRow label="Variant Price" value={formatPrice(selectedVariantOption?.price ?? 0)} />
+              <div className="my-2 border-t border-black/8" />
+              <SummaryRow label="Total Price" value={formatPrice(totalPrice)} emphasized />
+
+              <button
+                type="button"
+                className="mt-4 w-full rounded-full bg-black px-5 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
+              >
+                Generate Quote
+              </button>
+            </div>
+          </ConfigAccordion>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 export default function ConfigSidebar({
   product,
   selectedTableTypeId,
@@ -64,14 +378,42 @@ export default function ConfigSidebar({
   selectedLegs,
   selectedTopId,
   selectedLegsId,
+  selectedModuleIds,
+  selectedVariant,
+  selectedVariantOption,
+  pendingSofaModuleId,
+  disabledSofaOptionIds,
+  sofaDimensions,
   totalPrice,
   onSelectTableType,
   onSelectTopMaterial,
   onSelectLegsMaterial,
   onSelectTop,
   onSelectLegs,
+  onAddSofaModule,
+  onRemoveSofaModule,
+  onSelectSofaVariant,
   onReset,
 }) {
+  if (product.productType === "sofa") {
+    return (
+      <SofaSidebar
+        product={product}
+        selectedModuleIds={selectedModuleIds}
+        selectedVariant={selectedVariant}
+        selectedVariantOption={selectedVariantOption}
+        pendingSofaModuleId={pendingSofaModuleId}
+        disabledSofaOptionIds={disabledSofaOptionIds}
+        sofaDimensions={sofaDimensions}
+        totalPrice={totalPrice}
+        onAddSofaModule={onAddSofaModule}
+        onRemoveSofaModule={onRemoveSofaModule}
+        onSelectSofaVariant={onSelectSofaVariant}
+        onReset={onReset}
+      />
+    );
+  }
+
   const selectedTableType =
     product.tableTypes.find((type) => type.id === selectedTableTypeId) ??
     product.tableTypes[0];

@@ -8,6 +8,8 @@ import {
   Html,
   OrbitControls,
 } from "@react-three/drei";
+import { validateSofaConfiguration } from "../../utils/sofaConfig";
+import SofaAssembly from "./SofaAssembly";
 import TableAssembly from "./TableAssembly";
 
 function Loader() {
@@ -20,12 +22,35 @@ function Loader() {
   );
 }
 
-export default function ProductScene({ selectedTop, selectedLegs }) {
+export default function ProductScene({
+  product,
+  selectedTop,
+  selectedLegs,
+  selectedModuleIds = [],
+  selectedModuleEntries = [],
+  selectedVariant,
+  pendingSofaInsertionSlots = [],
+  onSelectSofaInsertionSlot,
+  collisionCheckModuleIndex,
+  onRemoveCollidingSofaModule,
+  panMode = false,
+}) {
+  const isSofa = product?.productType === "sofa";
+  const sofaValidation = isSofa
+    ? validateSofaConfiguration(product, selectedModuleIds)
+    : { valid: true, message: "" };
+
   return (
     <div className="h-full min-h-[520px] w-full bg-white">
+      {isSofa && !sofaValidation.valid ? (
+        <div className="absolute left-1/2 top-6 z-20 w-[min(520px,calc(100%-40px))] -translate-x-1/2 rounded-2xl border border-amber-200 bg-amber-50/95 px-4 py-3 text-sm font-medium text-amber-950 shadow-xl shadow-black/8 backdrop-blur">
+          {sofaValidation.message}
+        </div>
+      ) : null}
+
       <Canvas
         shadows
-        camera={{ position: [4.5, 2.8, 5.5], fov: 33 }}
+        camera={{ position: isSofa ? [4.8, 2.5, 5.8] : [4.5, 2.8, 5.5], fov: 33 }}
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         onCreated={({ gl }) => {
@@ -89,11 +114,24 @@ export default function ProductScene({ selectedTop, selectedLegs }) {
             followCamera={false}
           />
 
-          <TableAssembly
-            selectedTop={selectedTop}
-            selectedLegs={selectedLegs}
-            topGap={0}
-          />
+          {isSofa ? (
+            <SofaAssembly
+              product={product}
+              selectedModuleIds={selectedModuleIds}
+              selectedModuleEntries={selectedModuleEntries}
+              selectedVariant={selectedVariant}
+              pendingInsertionSlots={pendingSofaInsertionSlots}
+              onSelectInsertionSlot={onSelectSofaInsertionSlot}
+              collisionCheckModuleIndex={collisionCheckModuleIndex}
+              onRemoveCollidingModule={onRemoveCollidingSofaModule}
+            />
+          ) : (
+            <TableAssembly
+              selectedTop={selectedTop}
+              selectedLegs={selectedLegs}
+              topGap={0}
+            />
+          )}
 
           <Environment preset="apartment" blur={0.9} />
 
@@ -108,11 +146,17 @@ export default function ProductScene({ selectedTop, selectedLegs }) {
         </Suspense>
 
         <OrbitControls
-          enablePan={false}
+          enablePan
           enableDamping
+          panSpeed={0.85}
           minDistance={2.5}
-          maxDistance={9}
-          target={[0, 0.9, 0]}
+          maxDistance={isSofa ? 11 : 9}
+          target={isSofa ? [0, 0.72, 0] : [0, 0.9, 0]}
+          mouseButtons={{
+            LEFT: panMode ? THREE.MOUSE.PAN : THREE.MOUSE.ROTATE,
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: panMode ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN,
+          }}
         />
       </Canvas>
     </div>
