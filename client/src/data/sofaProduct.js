@@ -4,7 +4,8 @@ const SOFA_VARIANTS = [
     material: "Alpine",
     colour: "Sangria",
     label: "Alpine Sangria",
-    thumbnailUrl: "/images/sofa/colours/alpine_sangria.jpeg",
+    thumbnailUrl: "/images/sofa/colours/alpine_sangria.png",
+    textureUrl: "/images/sofa/colours/alpine_sangria.png",
   },
   {
     id: "alpine_gray",
@@ -12,6 +13,7 @@ const SOFA_VARIANTS = [
     colour: "Gray",
     label: "Alpine Gray",
     thumbnailUrl: "/images/sofa/colours/alpine_gray.jpeg",
+    textureUrl: "/images/sofa/colours/alpine_gray.jpeg",
   },
   {
     id: "alpine_ivory",
@@ -19,40 +21,11 @@ const SOFA_VARIANTS = [
     colour: "Ivory",
     label: "Alpine Ivory",
     thumbnailUrl: "/images/sofa/colours/alpine_ivory.jpeg",
+    textureUrl: "/images/sofa/colours/alpine_ivory.jpeg",
   },
 ];
 
 const DEFAULT_SOFA_MODEL_VARIANT = "alpine_ivory";
-const SOFA_MODEL_VARIANT_BY_BASE_ID = {
-  armless_1_seater_75: {
-    alpine_gray: "armless_1_seater_75",
-    alpine_sangria: "armless_1_seater_75",
-  },
-  armless_1_5_seater_90: {
-    alpine_gray: "armless_1_5_seater_91",
-    alpine_sangria: "armless_1_5_seater_91",
-  },
-  corner_element_103: {
-    alpine_gray: "corner_element_103",
-    alpine_sangria: "corner_element_103",
-  },
-  left_1_5_seater_arm_120: {
-    alpine_gray: "left_1_5_seater_arm_120",
-    alpine_sangria: "left_1_5_seater_arm_120",
-  },
-  longchair_left_130: {
-    alpine_gray: "longchair_left_130",
-    alpine_sangria: "longchair_left_130",
-  },
-  right1_1_5_seater_arm_120: {
-    alpine_gray: "right_1_5_seater_arm_120",
-    alpine_sangria: "right_1_5_seater_arm_120",
-  },
-  longchair_right_130: {
-    alpine_gray: "longchair_right_130",
-    alpine_sangria: "longchair_right_130",
-  },
-};
 
 const LEFT_CONNECTABLE_ROTATION = [0, Math.PI / 2, 0];
 const RIGHT_ARM_ROTATION = [0, Math.PI / 2, 0];
@@ -63,16 +36,9 @@ const CORNER_ROTATION_BY_PLACEMENT = {
 
 const createVariantModels = (baseModelId) =>
   SOFA_VARIANTS.reduce((acc, variant) => {
-    const variantModelId =
-      SOFA_MODEL_VARIANT_BY_BASE_ID[baseModelId]?.[variant.id] ?? baseModelId;
-    const fileVariantId =
-      SOFA_MODEL_VARIANT_BY_BASE_ID[baseModelId]?.[variant.id]
-        ? variant.id
-        : DEFAULT_SOFA_MODEL_VARIANT;
-
     acc[variant.id] = {
       variantId: variant.id,
-      modelUrl: `/models/sofa/modules/${variantModelId}_${fileVariantId}.glb`,
+      modelUrl: `/models/sofa/modules/${baseModelId}_${DEFAULT_SOFA_MODEL_VARIANT}.glb`,
     };
     return acc;
   }, {});
@@ -89,6 +55,7 @@ export const sofaProduct = {
   },
 
   variants: SOFA_VARIANTS,
+  fabricMaterialNames: ["Material__26"],
 
   moduleGroups: [
     {
@@ -240,6 +207,8 @@ export const sofaProduct = {
       dimensionsLabel: "130x161 cm",
       widthCm: 130,
       depthCm: 161,
+      connectionWidthCm: 119.4,
+      connectionDepthCm: 169.2,
       heightCm: 78,
       price: 1595,
       repeatable: false,
@@ -314,6 +283,8 @@ export const sofaProduct = {
       dimensionsLabel: "130x161 cm",
       widthCm: 130,
       depthCm: 161,
+      connectionWidthCm: 119.4,
+      connectionDepthCm: 169.2,
       heightCm: 78,
       price: 1595,
       repeatable: false,

@@ -229,7 +229,7 @@ function SofaSidebar({
                 Configure Your Sofa
               </h1>
               <p className="mt-3 max-w-sm text-sm leading-6 text-neutral-500">
-                Build a modular layout, then choose the baked material variant.
+                Build a modular layout, then choose the fabric finish.
               </p>
             </div>
 

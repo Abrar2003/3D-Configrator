@@ -1,6 +1,6 @@
 import { Component, useMemo } from "react";
 import * as THREE from "three";
-import { Html, Line, Text, useGLTF } from "@react-three/drei";
+import { Html, Line, Text, useGLTF, useTexture } from "@react-three/drei";
 import { Trash2 } from "lucide-react";
 import {
   calculateSofaDimensions,
@@ -10,6 +10,7 @@ import {
 } from "../../utils/sofaConfig";
 
 const TURN_CONNECTION_TRIM_METERS = 0.001;
+const DEFAULT_FABRIC_MATERIAL_NAMES = ["Material__26"];
 
 function toVector(value, fallback = [0, 0, 0]) {
   return Array.isArray(value) && value.length === 3 ? value : fallback;
@@ -55,6 +56,28 @@ function getProjectionRange(points, axis) {
 }
 
 function getModuleConnectionSize(module, measuredRowSize, measuredFrontSize) {
+  const connectionWidth = Number(module.connectionWidthCm) / 100;
+  const connectionDepth = Number(module.connectionDepthCm) / 100;
+  const catalogWidth = Number(module.widthCm) / 100;
+  const catalogDepth = Number(module.depthCm) / 100;
+
+  return {
+    rowSize:
+      Number.isFinite(connectionWidth) && connectionWidth > 0
+        ? connectionWidth
+        : Number.isFinite(catalogWidth) && catalogWidth > 0
+          ? catalogWidth
+          : measuredRowSize,
+    frontSize:
+      Number.isFinite(connectionDepth) && connectionDepth > 0
+        ? connectionDepth
+        : Number.isFinite(catalogDepth) && catalogDepth > 0
+          ? catalogDepth
+          : measuredFrontSize,
+  };
+}
+
+function getModuleDisplaySize(module, connectionSize) {
   const catalogWidth = Number(module.widthCm) / 100;
   const catalogDepth = Number(module.depthCm) / 100;
 
@@ -62,11 +85,11 @@ function getModuleConnectionSize(module, measuredRowSize, measuredFrontSize) {
     rowSize:
       Number.isFinite(catalogWidth) && catalogWidth > 0
         ? catalogWidth
-        : measuredRowSize,
+        : connectionSize.rowSize,
     frontSize:
       Number.isFinite(catalogDepth) && catalogDepth > 0
         ? catalogDepth
-        : measuredFrontSize,
+        : connectionSize.frontSize,
   };
 }
 
@@ -98,7 +121,7 @@ function getConnectionFootprint(anchor, rowDirection, frontDirection, rowSize, f
 
 function getRenderedFootprintBounds(objects = []) {
   const footprints = objects
-    .map((object) => object.footprint)
+    .map((object) => object.displayFootprint ?? object.footprint)
     .filter(Boolean);
 
   if (!footprints.length) {
@@ -123,7 +146,34 @@ function getModuleRotation(module, moduleEntry) {
   );
 }
 
-function prepareSofaClone(source, module, moduleEntry, segmentAngle = 0) {
+function isFabricMaterial(material, fabricMaterialNames) {
+  const materialName = material?.name ?? "";
+
+  return fabricMaterialNames.some((fabricMaterialName) =>
+    materialName.includes(fabricMaterialName)
+  );
+}
+
+function applyFabricTexture(material, texture) {
+  const nextMaterial = material.clone();
+
+  nextMaterial.map = texture;
+  nextMaterial.color?.set("#ffffff");
+  nextMaterial.roughness = 0.86;
+  nextMaterial.metalness = 0.02;
+  nextMaterial.needsUpdate = true;
+
+  return nextMaterial;
+}
+
+function prepareSofaClone(
+  source,
+  module,
+  moduleEntry,
+  segmentAngle = 0,
+  fabricTexture,
+  fabricMaterialNames = DEFAULT_FABRIC_MATERIAL_NAMES
+) {
   const clone = source.clone(true);
   const scale = toVector(module.scale, [1, 1, 1]);
   const rotation = toVector(getModuleRotation(module, moduleEntry), [0, 0, 0]);
@@ -134,6 +184,18 @@ function prepareSofaClone(source, module, moduleEntry, segmentAngle = 0) {
     if (child.isMesh) {
       child.castShadow = true;
       child.receiveShadow = true;
+
+      if (fabricTexture) {
+        if (Array.isArray(child.material)) {
+          child.material = child.material.map((material) =>
+            isFabricMaterial(material, fabricMaterialNames)
+              ? applyFabricTexture(material, fabricTexture)
+              : material
+          );
+        } else if (isFabricMaterial(child.material, fabricMaterialNames)) {
+          child.material = applyFabricTexture(child.material, fabricTexture);
+        }
+      }
     }
   });
   clone.updateMatrixWorld(true);
@@ -378,13 +440,33 @@ export default function SofaAssembly({
 }) {
   const validation = validateSofaConfiguration(product, selectedModuleIds);
   const selectedModules = getSelectedSofaModules(selectedModuleIds, product);
+  const selectedVariantOption =
+    product?.variants?.find((variant) => variant.id === selectedVariant) ??
+    product?.variants?.[0];
+  const fabricTexture = useTexture(
+    selectedVariantOption?.textureUrl ?? selectedVariantOption?.thumbnailUrl
+  );
   const modelUrls = selectedModules.map((module) =>
     getSofaModuleModelUrl(module, selectedVariant)
   );
   const loadedModels = useGLTF(modelUrls);
   const dimensions = calculateSofaDimensions(selectedModuleIds, product);
+  const configuredFabricTexture = useMemo(() => {
+    const texture = fabricTexture.clone();
+
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(3, 3);
+    texture.needsUpdate = true;
+
+    return texture;
+  }, [fabricTexture]);
   const assembly = useMemo(() => {
     const loadedModelList = Array.isArray(loadedModels) ? loadedModels : [loadedModels];
+    const fabricMaterialNames =
+      product?.fabricMaterialNames ?? DEFAULT_FABRIC_MATERIAL_NAMES;
+
     return selectedModules.reduce((layout, module, index) => {
       const source = loadedModelList[index]?.scene;
       const moduleEntry = selectedModuleEntries[index];
@@ -452,6 +534,7 @@ export default function SofaAssembly({
               size: fallbackSize,
               rotation: [0, layout.segmentAngle, 0],
               footprint: fallbackFootprint,
+              displayFootprint: fallbackFootprint,
             },
           ],
           slotPositions: [
@@ -467,7 +550,14 @@ export default function SofaAssembly({
         };
       }
 
-      const clone = prepareSofaClone(source, module, moduleEntry, layout.segmentAngle);
+      const clone = prepareSofaClone(
+        source,
+        module,
+        moduleEntry,
+        layout.segmentAngle,
+        configuredFabricTexture,
+        fabricMaterialNames
+      );
       const box = new THREE.Box3().setFromObject(clone);
       const points = getBoxCorners(box);
       const rowRange = getProjectionRange(points, currentRowDirection);
@@ -479,6 +569,7 @@ export default function SofaAssembly({
         rowSize,
         frontSize
       );
+      const displaySize = getModuleDisplaySize(module, connectionSize);
       const desiredFront =
         dotVector(currentAnchor, currentFrontDirection) +
         connectionSize.frontSize / 2;
@@ -502,6 +593,14 @@ export default function SofaAssembly({
         currentFrontDirection,
         connectionSize.rowSize,
         connectionSize.frontSize,
+        offset
+      );
+      const displayFootprint = getConnectionFootprint(
+        currentAnchor,
+        currentRowDirection,
+        currentFrontDirection,
+        displaySize.rowSize,
+        displaySize.frontSize,
         offset
       );
       nextAnchor = addVectors(
@@ -537,6 +636,7 @@ export default function SofaAssembly({
             index,
             position,
             footprint,
+            displayFootprint,
           },
         ],
         slotPositions: [
@@ -558,7 +658,13 @@ export default function SofaAssembly({
       frontDirection: [1, 0, 0],
       segmentAngle: 0,
     });
-  }, [loadedModels, selectedModuleEntries, selectedModules]);
+  }, [
+    configuredFabricTexture,
+    loadedModels,
+    product?.fabricMaterialNames,
+    selectedModuleEntries,
+    selectedModules,
+  ]);
   const footprintBounds = useMemo(
     () => getRenderedFootprintBounds(assembly.objects),
     [assembly.objects]
