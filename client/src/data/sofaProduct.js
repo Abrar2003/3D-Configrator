@@ -55,7 +55,7 @@ export const sofaProduct = {
   },
 
   variants: SOFA_VARIANTS,
-  fabricMaterialNames: ["Material__26"],
+  fabricMaterialNames: ["Material__26", "Material__21", "Material__2"],
 
   moduleGroups: [
     {
