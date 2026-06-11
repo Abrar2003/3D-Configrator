@@ -12,16 +12,16 @@ const SOFA_VARIANTS = [
     material: "Alpine",
     colour: "Gray",
     label: "Alpine Gray",
-    thumbnailUrl: "/images/sofa/colours/alpine_gray.jpeg",
-    textureUrl: "/images/sofa/colours/alpine_gray.jpeg",
+    thumbnailUrl: "/images/sofa/colours/alpine_gray.png",
+    textureUrl: "/images/sofa/colours/alpine_gray.png",
   },
   {
     id: "alpine_ivory",
     material: "Alpine",
     colour: "Ivory",
     label: "Alpine Ivory",
-    thumbnailUrl: "/images/sofa/colours/alpine_ivory.jpeg",
-    textureUrl: "/images/sofa/colours/alpine_ivory.jpeg",
+    thumbnailUrl: "/images/sofa/colours/alpine_ivory.png",
+    textureUrl: "/images/sofa/colours/alpine_ivory.png",
   },
 ];
 

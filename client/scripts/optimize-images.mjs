@@ -28,9 +28,13 @@ async function collectImages(directory) {
 function getMaxDimension(filePath) {
   const normalizedPath = filePath.split(path.sep).join("/");
 
-  if (normalizedPath.includes("/sofa/colours/")) return 1024;
+  if (normalizedPath.includes("/sofa/colours/")) return 2048;
   if (normalizedPath.includes("/table/material/")) return 640;
   return 640;
+}
+
+function isSofaFabricTexture(filePath) {
+  return filePath.split(path.sep).join("/").includes("/sofa/colours/");
 }
 
 async function optimizeImage(filePath) {
@@ -49,12 +53,12 @@ async function optimizeImage(filePath) {
     pipeline = pipeline.png({
       compressionLevel: 9,
       effort: 10,
-      palette: true,
-      quality: 82,
+      palette: !isSofaFabricTexture(filePath),
+      quality: isSofaFabricTexture(filePath) ? 100 : 82,
     });
   } else {
     pipeline = pipeline.jpeg({
-      quality: 74,
+      quality: isSofaFabricTexture(filePath) ? 90 : 74,
       mozjpeg: true,
     });
   }

@@ -158,9 +158,12 @@ function applyFabricTexture(material, texture) {
   const nextMaterial = material.clone();
 
   nextMaterial.map = texture;
+  nextMaterial.bumpMap = texture;
+  nextMaterial.bumpScale = 0.012;
   nextMaterial.color?.set("#ffffff");
-  nextMaterial.roughness = 0.86;
-  nextMaterial.metalness = 0.02;
+  nextMaterial.roughness = 0.94;
+  nextMaterial.metalness = 0;
+  nextMaterial.envMapIntensity = 0.25;
   nextMaterial.needsUpdate = true;
 
   return nextMaterial;
@@ -457,7 +460,11 @@ export default function SofaAssembly({
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(3, 3);
+    texture.anisotropy = 12;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.repeat.set(1, 1);
+    texture.generateMipmaps = true;
     texture.needsUpdate = true;
 
     return texture;

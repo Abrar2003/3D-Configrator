@@ -77,7 +77,7 @@ async function optimizeGlb(filePath) {
 
   await document.transform(
     dedup(),
-    prune(),
+    prune({ keepAttributes: true }),
     weld({ tolerance: 0.00001 }),
     quantize({
       quantizePosition: 14,
@@ -92,7 +92,7 @@ async function optimizeGlb(filePath) {
       quality: 72,
       slots: /baseColorTexture/,
     }),
-    prune()
+    prune({ keepAttributes: true })
   );
 
   await io.write(filePath, document);
