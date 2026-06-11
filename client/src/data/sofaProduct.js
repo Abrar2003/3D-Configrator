@@ -23,6 +23,30 @@ const SOFA_VARIANTS = [
     thumbnailUrl: "/images/sofa/colours/alpine_ivory.png",
     textureUrl: "/images/sofa/colours/alpine_ivory.png",
   },
+  {
+    id: "alpine_mink",
+    material: "Alpine",
+    colour: "Mink",
+    label: "Alpine Mink",
+    thumbnailUrl: "/images/sofa/colours/alpine_mink.png",
+    textureUrl: "/images/sofa/colours/alpine_mink.png",
+  },
+  {
+    id: "alpine_pearl",
+    material: "Alpine",
+    colour: "Pearl",
+    label: "Alpine Pearl",
+    thumbnailUrl: "/images/sofa/colours/alpine_pearl.png",
+    textureUrl: "/images/sofa/colours/alpine_pearl.png",
+  },
+  {
+    id: "alpine_ice_blue",
+    material: "Alpine",
+    colour: "Ice Blue",
+    label: "Alpine Ice Blue",
+    thumbnailUrl: "/images/sofa/colours/alpine_ice_blue.png",
+    textureUrl: "/images/sofa/colours/alpine_ice_blue.png",
+  },
 ];
 
 const DEFAULT_SOFA_MODEL_VARIANT = "alpine_ivory";
